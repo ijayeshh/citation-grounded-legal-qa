@@ -1,12 +1,61 @@
-# promptfoo prompt-regression gate (Phase 3.6) — the cheap, always-on smoke alarm
-# in CI, kept SEPARATE from the heavy faithfulness harness.
+# promptfoo prompt-regression gate (Phase 3.6) — the cheap, always-on smoke alarm.
 #
-# Placeholder for Phase 0. Real config will assert: every answer includes a
-# citation, output parses as valid structured citations, no answer sentence lacks
-# a supporting reference, latency is sane. Not yet implemented.
+# Kept SEPARATE from the faithfulness harness: this checks the OUTPUT CONTRACT on a
+# small fixed set of cases on every push (every answer is structured, every claim
+# carries a valid character-offset citation, latency is sane). Deep groundedness
+# (NLI + gold-span IoU) is the harness's job, run on demand — not here.
+#
+# The provider runs the real generation path (prompt -> Mistral -> Pydantic parse).
+# Requires MISTRAL_API_KEY in the environment.
 
-description: "Legal QA prompt-regression smoke tests (placeholder)"
+description: "Legal QA output-contract smoke tests (structured citations)"
 
-prompts: []
-providers: []
-tests: []
+prompts:
+  - "{{question}}" # provider reads structured vars; this is a nominal prompt
+
+providers:
+  - id: "file://promptfoo/provider.py"
+    label: "cited-answer-pipeline"
+
+defaultTest:
+  assert:
+    # 1. Output is valid JSON.
+    - type: is-json
+    # 2. Latency is sane (smoke alarm, not a benchmark).
+    - type: latency
+      threshold: 30000
+    # 3. Every answer has >=1 claim, and every claim carries a valid structured citation
+    #    with well-formed character offsets. (No claim without a supporting reference.)
+    - type: javascript
+      value: |
+        const o = JSON.parse(output);
+        if (!Array.isArray(o.claims) || o.claims.length < 1) {
+          throw new Error('answer has no cited claims');
+        }
+        for (const c of o.claims) {
+          if (!c.text || !c.citation) throw new Error('claim missing text or citation');
+          const cit = c.citation;
+          if (typeof cit.contract_id !== 'string' || cit.contract_id.length === 0) {
+            throw new Error('citation missing contract_id');
+          }
+          if (!Number.isInteger(cit.char_start) || !Number.isInteger(cit.char_end)) {
+            throw new Error('citation offsets must be integers');
+          }
+          if (cit.char_end <= cit.char_start) throw new Error('citation span is non-positive');
+        }
+        return true;
+
+tests:
+  - description: "termination + notice period"
+    vars:
+      question: "Can either party terminate for convenience, and what is the notice period?"
+      spans:
+        - {chunk_id: "S1", contract_id: "K1", char_start: 0, char_end: 120, text: "Either party may terminate this Agreement for convenience upon thirty (30) days prior written notice to the other party."}
+        - {chunk_id: "S2", contract_id: "K1", char_start: 121, char_end: 190, text: "This Agreement shall be governed by the laws of the State of Delaware."}
+
+  - description: "cap on liability"
+    vars:
+      question: "Is there a cap on liability?"
+      spans:
+        - {chunk_id: "S1", contract_id: "K2", char_start: 0, char_end: 128, text: "In no event shall either party's aggregate liability exceed the total fees paid under this Agreement in the prior twelve months."}
+        - {chunk_id: "S2", contract_id: "K2", char_start: 129, char_end: 210, text: "The Supplier grants the Customer a non-exclusive license to use the Software."}

@@ -1,5 +1,7 @@
-# CI: on push, run unit tests + promptfoo; fail the build on regression.
-# The heavy faithfulness harness is NOT run here (it is on-demand via `make eval`).
+# CI (Phase 3.6): on push/PR, run unit tests + the promptfoo smoke alarm; fail on regression.
+# The heavy faithfulness harness is NOT run here — it is on-demand via `make eval`.
+# promptfoo exercises the output contract (structured citations) using the real
+# generation path and requires the MISTRAL_API_KEY repository secret.
 name: ci
 
 on:
@@ -31,5 +33,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Run promptfoo
+      - name: promptfoo smoke tests (output-contract regression gate)
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
         run: npx --yes promptfoo@latest eval -c promptfoo/promptfooconfig.yaml

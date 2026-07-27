@@ -22,8 +22,15 @@ dataset:
   # evaluation; they must NEVER be used during development/tuning.
   # Split is BY CONTRACT, not by clause. Fill after inspecting the corpus.
   eval_holdout_contract_ids: []
-  # Alternatively/additionally evaluate on non-CUAD LegalBench tasks:
-  legalbench_tasks: []        # e.g. ["contract_nli_...", "definition_classification"]
+  # Contamination control (Phase 3.3): we AVOID LegalBench cuad_* tasks entirely
+  # (they derive from the same CUAD contracts) and evaluate on a NON-CUAD task from
+  # the ContractNLI dataset. Zero overlap with the CUAD corpus used to build/eval
+  # the RAG system, so no by-contract holdout is needed for this headline.
+  legalbench_task: "contract_nli_survival_of_obligations"
+  legalbench_source: "nguha/legalbench"   # HuggingFace dataset id
+  # Fixed hypothesis per task (LegalBench stores it in the task prompt, not the rows):
+  legalbench_hypotheses:
+    contract_nli_survival_of_obligations: "Some obligations of the Agreement survive the termination of the Agreement."
 
 chunking:
   strategy: "sliding_window"  # clause-aware sliding window with overlap

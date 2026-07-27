@@ -1,0 +1,9 @@
+{
+  "task": "contract_nli_survival_of_obligations",
+  "source": "fixture",
+  "contamination_control": "non-CUAD ContractNLI task; no overlap with CUAD corpus",
+  "n_examples": 8,
+  "accuracy": 0.875,
+  "balanced_accuracy": 0.875,
+  "nli_model": "cross-encoder/nli-deberta-v3-base"
+}

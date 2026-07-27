@@ -38,10 +38,16 @@ def run(
     limit: int | None = None,
     build_retrieval: bool = True,
     raw_path: str | None = None,
+    max_chars: int | None = None,
+    overlap_chars: int | None = None,
 ) -> None:
     cfg = _load_config(config_path)
     paths = cfg["paths"]
-    chunking = cfg["chunking"]
+    chunking = dict(cfg["chunking"])
+    if max_chars is not None:
+        chunking["max_chars"] = max_chars
+    if overlap_chars is not None:
+        chunking["overlap_chars"] = overlap_chars
     total = 6 if build_retrieval else 4
 
     os.makedirs(paths["raw_dir"], exist_ok=True)
@@ -109,6 +115,8 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--no-retrieval", action="store_true", help="stop after chunking")
     ap.add_argument("--raw-path", default=None, help="index from an existing raw JSONL snapshot")
+    ap.add_argument("--max-chars", type=int, default=None, help="override chunking.max_chars")
+    ap.add_argument("--overlap-chars", type=int, default=None, help="override chunking.overlap_chars")
     args = ap.parse_args()
     run(
         args.config,
@@ -116,6 +124,8 @@ def main() -> None:
         limit=args.limit,
         build_retrieval=not args.no_retrieval,
         raw_path=args.raw_path,
+        max_chars=args.max_chars,
+        overlap_chars=args.overlap_chars,
     )
 
 

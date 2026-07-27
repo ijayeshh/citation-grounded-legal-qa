@@ -1,0 +1,8 @@
+id,contract_id,clause_type,n_claims,faithfulness_nli,faithfulness_judge,nli_judge_agreement,cit_precision,cit_recall,cit_iou
+ACME_SUPPLY_AGREEMENT::Cap On Liability,ACME_SUPPLY_AGREEMENT,Cap On Liability,5,0.8,0.8,1.0,0.4556,1.0,0.4556
+ACME_SUPPLY_AGREEMENT::Governing Law,ACME_SUPPLY_AGREEMENT,Governing Law,4,0.0,0.75,0.25,0.0825,1.0,0.0825
+ACME_SUPPLY_AGREEMENT::Renewal Term,ACME_SUPPLY_AGREEMENT,Renewal Term,5,0.8,0.8,1.0,0.1425,1.0,0.1425
+ACME_SUPPLY_AGREEMENT::Termination For Convenience,ACME_SUPPLY_AGREEMENT,Termination For Convenience,4,0.5,1.0,0.5,0.3,1.0,0.3
+GLOBEX_LICENSE::Anti-Assignment,GLOBEX_LICENSE,Anti-Assignment,5,0.2,0.4,0.8,0.4182,1.0,0.4182
+GLOBEX_LICENSE::Governing Law,GLOBEX_LICENSE,Governing Law,4,0.0,0.75,0.25,0.15,1.0,0.15
+GLOBEX_LICENSE::License Grant,GLOBEX_LICENSE,License Grant,3,1.0,0.3333,0.3333,0.2636,0.9831,0.2624
