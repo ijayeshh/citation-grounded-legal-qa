@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------------------
+# Reproducibility note:
+# These are conservative pins that work as a starting point. After your FIRST
+# successful `make setup`, run `pip freeze > requirements.lock.txt` and commit
+# that lockfile — that is your true reproducible snapshot. Verify latest stable
+# versions before committing (some may have advanced).
+#
+# CPU-only: torch pulls the CPU build by default here. GPU is never required.
+# promptfoo is NOT here — it is a Node tool, installed via npx (see Makefile).
+# ---------------------------------------------------------------------------
+
+# --- Data & ML core ---
+datasets==2.20.0
+sentence-transformers==3.0.1
+faiss-cpu==1.8.0
+rank-bm25==0.2.2
+transformers==4.44.2
+torch==2.4.1                # CPU build; installs CPU wheels by default
+numpy==1.26.4
+scikit-learn==1.5.1
+
+# --- Orchestration (verifier loop only) ---
+langgraph==0.2.28
+langchain-core==0.3.5      # required by langgraph
+
+# --- Generation LLM (Mistral La Plateforme) ---
+mistralai==1.1.0
+
+# --- Schemas / config ---
+pydantic==2.9.2
+pyyaml==6.0.2
+python-dotenv==1.0.1
+
+# --- API + frontend ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+streamlit==1.38.0
+httpx==0.27.2              # UI -> API calls
+
+# --- Integration + observability ---
+mcp==1.0.0                 # Model Context Protocol Python SDK
+langfuse==2.51.5
+
+# --- Testing ---
+pytest==8.3.3

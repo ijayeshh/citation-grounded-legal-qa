@@ -1,0 +1,35 @@
+# CI: on push, run unit tests + promptfoo; fail the build on regression.
+# The heavy faithfulness harness is NOT run here (it is on-demand via `make eval`).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies (CPU-only)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: pytest -q
+
+      - name: Set up Node (for promptfoo)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run promptfoo
+        run: npx --yes promptfoo@latest eval -c promptfoo/promptfooconfig.yaml

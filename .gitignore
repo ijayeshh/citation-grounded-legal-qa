@@ -1,0 +1,39 @@
+# --- Secrets (NEVER commit) ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- Data, indexes, generated artifacts (rebuildable, do not commit) ---
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.index
+*.faiss
+*.db
+
+# --- Reproducibility lockfile is committed; caches are not ---
+# (requirements.lock.txt IS committed once generated)
+
+# --- Node (promptfoo via npx) ---
+node_modules/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

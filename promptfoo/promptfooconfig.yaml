@@ -1,0 +1,12 @@
+# promptfoo prompt-regression gate (Phase 3.6) — the cheap, always-on smoke alarm
+# in CI, kept SEPARATE from the heavy faithfulness harness.
+#
+# Placeholder for Phase 0. Real config will assert: every answer includes a
+# citation, output parses as valid structured citations, no answer sentence lacks
+# a supporting reference, latency is sane. Not yet implemented.
+
+description: "Legal QA prompt-regression smoke tests (placeholder)"
+
+prompts: []
+providers: []
+tests: []

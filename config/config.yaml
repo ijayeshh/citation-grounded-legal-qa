@@ -1,0 +1,80 @@
+# ============================================================================
+# Central configuration. Every tunable the plan references lives here so the
+# pipeline mechanics stay visible and reproducible. No secrets in this file —
+# secrets go in .env.
+# ============================================================================
+
+paths:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  faiss_index: "data/processed/faiss.index"
+  faiss_sidecar: "data/processed/faiss_meta.jsonl"   # faiss_id -> chunk metadata
+  bm25_store: "data/processed/bm25.pkl"               # pickled BM25 corpus + chunks
+  gold_spans: "data/processed/gold_spans.json"        # (contract_id, clause_type) -> spans
+  contracts: "data/processed/contracts.jsonl"         # contract_id -> {text, metadata}
+  chunks: "data/processed/chunks.jsonl"
+  sqlite_db: "data/processed/app.db"
+  eval_reports_dir: "eval_reports"
+
+dataset:
+  name: "theatticusproject/cuad-qa"   # HuggingFace dataset id (SQuAD-style CUAD QA)
+  # Contamination control (Phase 3.3): hold out these contracts entirely for
+  # evaluation; they must NEVER be used during development/tuning.
+  # Split is BY CONTRACT, not by clause. Fill after inspecting the corpus.
+  eval_holdout_contract_ids: []
+  # Alternatively/additionally evaluate on non-CUAD LegalBench tasks:
+  legalbench_tasks: []        # e.g. ["contract_nli_...", "definition_classification"]
+
+chunking:
+  strategy: "sliding_window"  # clause-aware sliding window with overlap
+  max_chars: 1800             # per-chunk character budget
+  overlap_chars: 200          # overlap to avoid splitting clauses
+  preserve_offsets: true      # MUST stay true — offsets feed IoU scoring
+
+embeddings:
+  model: "sentence-transformers/all-mpnet-base-v2"   # swap for a legal model if desired
+  batch_size: 32
+  device: "cpu"               # GPU never required
+
+retrieval:
+  bm25_top_k: 50
+  dense_top_k: 50
+  fusion: "rrf"               # reciprocal rank fusion (or "weighted")
+  rrf_k: 60
+  candidates_before_rerank: 50   # top_k
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  results_after_rerank: 8        # top_n passed to the generator
+
+generation:
+  provider: "mistral"
+  model_dev: "mistral-small-latest"    # iterate on this
+  model_final: "mistral-large-latest"  # final headline eval only
+  temperature: 0.0
+  max_tokens: 1024
+  # Rate-limit handling (RPM is the binding constraint on the free tier):
+  max_retries: 6
+  backoff_base_seconds: 2.0
+  backoff_max_seconds: 60.0
+
+verification:
+  nli_model: "cross-encoder/nli-deberta-v3-base"  # loaded ONCE, reused everywhere
+  entailment_threshold: 0.5      # below -> claim treated as unsupported
+  regenerate_unsupported: true   # flag + regenerate once, then flag if still unsupported
+  max_regeneration_rounds: 1
+
+eval:
+  use_llm_judge: true            # cross-check NLI verdict with an LLM judge
+  llm_judge_model: "mistral-small-latest"
+  report_formats: ["md", "csv"]
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+
+frontend:
+  api_url: "http://127.0.0.1:8000"
+  highlight_color: "#fde68a"     # cited-span highlight
+  flag_color: "#ef4444"          # unsupported-claim red flag
+
+observability:
+  langfuse_enabled: true
