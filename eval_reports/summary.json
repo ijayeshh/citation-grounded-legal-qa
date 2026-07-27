@@ -1,11 +1,11 @@
 {
   "n_questions": 7,
   "aggregate": {
-    "faithfulness_nli": 0.4714,
-    "faithfulness_judge": 0.6905,
-    "nli_judge_agreement": 0.5905,
-    "cit_precision": 0.2589,
-    "cit_recall": 0.9976,
-    "cit_iou": 0.2587
+    "faithfulness_nli": 0.422,
+    "faithfulness_judge": 0.7765,
+    "nli_judge_agreement": 0.5332,
+    "cit_precision": 0.1815,
+    "cit_recall": 1.0,
+    "cit_iou": 0.1815
   }
 }

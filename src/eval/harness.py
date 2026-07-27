@@ -101,11 +101,16 @@ def build_eval_items(gold_spans: dict, limit: int | None = None) -> list[dict]:
 # --- Core evaluation ---------------------------------------------------------
 
 
-def evaluate(cfg: dict, limit: int | None = None) -> dict:
-    """Run the full harness and return {per_question, aggregate}."""
-    paths, v_cfg, e_cfg, emb_cfg = (
-        cfg["paths"], cfg["verification"], cfg["eval"], cfg["embeddings"],
+def evaluate(cfg: dict, limit: int | None = None, use_final_model: bool = False) -> dict:
+    """Run the full harness and return {per_question, aggregate}.
+
+    ``use_final_model=True`` runs generation on Mistral Large (the final headline run);
+    otherwise Mistral Small (iteration).
+    """
+    paths, v_cfg, e_cfg, emb_cfg, g_cfg = (
+        cfg["paths"], cfg["verification"], cfg["eval"], cfg["embeddings"], cfg["generation"],
     )
+    gen_model = g_cfg["model_final"] if use_final_model else g_cfg["model_dev"]
 
     gold_spans = load_gold_spans(paths["gold_spans"])
     items = build_eval_items(gold_spans, limit=limit)
@@ -115,7 +120,8 @@ def evaluate(cfg: dict, limit: int | None = None) -> dict:
     retriever = HybridRetriever.from_disk(cfg, embedder)
     nli = load_nli(v_cfg["nli_model"], device=emb_cfg["device"])
     gate = GroundednessGate.from_config(cfg, nli)
-    pipeline = build_pipeline(retriever, MistralClient.from_config(cfg), gate, cfg)
+    gen_client = MistralClient.from_config(cfg, use_final_model=use_final_model)
+    pipeline = build_pipeline(retriever, gen_client, gate, cfg)
 
     use_judge = e_cfg.get("use_llm_judge", True)
     judge_client = (
@@ -157,7 +163,12 @@ def evaluate(cfg: dict, limit: int | None = None) -> dict:
         })
 
     aggregate = _aggregate(per_q, use_judge)
-    return {"per_question": per_q, "aggregate": aggregate, "n_questions": len(per_q)}
+    return {
+        "per_question": per_q,
+        "aggregate": aggregate,
+        "n_questions": len(per_q),
+        "generation_model": gen_model,
+    }
 
 
 def _mean(values: list[float]) -> float | None:
@@ -219,6 +230,7 @@ def _write_summary_md(results: dict, reports_dir: str) -> str:
         "# Faithfulness & Citation Evaluation",
         "",
         f"Full-method pipeline over **{n}** evaluation questions (single method; no baseline).",
+        f"Generation model: **{results.get('generation_model', '?')}**. "
         "Faithfulness = fraction of atomic claims entailed by their cited source span.",
         "",
         "## Headline (aggregate)",
@@ -266,13 +278,16 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Faithfulness + citation harness (Phase 3.1-3.2).")
     ap.add_argument("--config", default="config/config.yaml")
     ap.add_argument("--limit", type=int, default=None, help="cap number of eval questions")
+    ap.add_argument("--large", action="store_true",
+                    help="run generation on Mistral Large (final headline run)")
     args = ap.parse_args()
 
     load_dotenv()
     cfg = yaml.safe_load(open(args.config, encoding="utf-8"))
 
-    print(f"Running faithfulness harness (limit={args.limit}) ...")
-    results = evaluate(cfg, limit=args.limit)
+    model = cfg["generation"]["model_final"] if args.large else cfg["generation"]["model_dev"]
+    print(f"Running faithfulness harness (limit={args.limit}, model={model}) ...")
+    results = evaluate(cfg, limit=args.limit, use_final_model=args.large)
 
     written = write_reports(results, cfg["paths"]["eval_reports_dir"], cfg["eval"]["report_formats"])
     _print_summary(results)

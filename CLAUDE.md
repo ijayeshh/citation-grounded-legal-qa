@@ -8,16 +8,33 @@ Citation-grounded legal QA over CUAD commercial contracts: answers carry **span-
 
 ## Current Phase
 
-**Phase 3 — Faithfulness harness, LegalBench & CI (next up).** Phases 0–2 are done, committed, and pushed to `origin/main`. See `PROJECT_PLAN.md` for the full 4-phase plan.
+**All four phases complete.** The full pipeline (ingest → retrieval → generation →
+verification → eval → API/UI/MCP) is built, tested, and pushed to `origin/main`.
+Cross-Phase Checklist: 19/19 pass. See `PROJECT_PLAN.md` for the plan.
 
-Done so far:
-- **Phase 1 (1.2–1.7):** CUAD ingest → normalize (`contracts`, `gold_spans` with exact offsets) → sliding-window chunking → FAISS + BM25 → hybrid RRF + cross-encoder reranker. `make index` runs it (`--raw-path` to index from a saved snapshot, `--no-retrieval` to stop after chunking). `make smoke` / `src/retrieval/smoke.py` (`--demo` self-contained, `--from-disk` real artifacts).
-- **Phase 2 (2.1–2.8):** `Citation`/`Claim`/`Answer` schemas; `MistralClient` (retry/backoff, `from_config`); cited-answer generation with parse-retry; claim decomposition; shared NLI singleton; groundedness gate; LangGraph verifier loop (`src/graph/pipeline.py`, `answer_question()`).
-- **Tests:** 56 passing (`pytest -q`), all offline (LLM + NLI mocked).
+- **Phase 1 (1.2–1.7):** CUAD ingest → `contracts`/`gold_spans` (exact offsets) →
+  sliding-window chunking → FAISS + BM25 → hybrid RRF + cross-encoder reranker. `make index`
+  (`--raw-path`, `--no-retrieval`, `--max-chars/--overlap-chars`); `make smoke`.
+- **Phase 2 (2.1–2.8):** `Citation`/`Claim`/`Answer` schemas; `MistralClient` (retry/backoff);
+  cited-answer generation w/ parse-retry; claim decomposition; shared NLI singleton;
+  groundedness gate; LangGraph verifier loop (`graph/pipeline.py`, `answer_question()`).
+- **Phase 3 (3.1–3.6):** `eval/harness.py` (NLI faithfulness + LLM-judge cross-check),
+  `citation_metrics.py` (gold-span P/R/IoU), `legalbench_runner.py` (non-CUAD contract_nli,
+  contamination-controlled), committed `eval_reports/`, promptfoo + GitHub Actions CI.
+  `make eval`; `--large` for the Mistral Large headline.
+- **Phase 4 (4.1–4.6):** FastAPI backend (single boundary, models loaded once via lifespan,
+  Langfuse trace, SQLite log); Streamlit UI (highlighted citations, live score, red flags);
+  MCP `search_contracts`; finalized README (headline numbers, mermaid diagrams, scope statement).
+- **Tests:** 72 passing (`pytest -q`), all offline (LLM + NLI mocked).
 
-Next (Phase 3): `src/eval/harness.py`, `citation_metrics.py`, `legalbench_runner.py`; contamination split; `eval_reports/`; promptfoo + GitHub Actions.
+**Headline (sample snapshot, Mistral Large):** faithfulness NLI 0.42 / judge 0.78,
+citation recall 1.00 / IoU 0.18, LegalBench 0.875. Numbers are from the 2-contract offline
+snapshot; full-corpus run is `make setup && make index && make eval` in a clean venv.
 
-**Env note:** live CUAD download needs pinned `datasets==2.20.0` (script-based loader) in a clean venv; newer `datasets` drops script support. Dataset id is `theatticusproject/cuad-qa`. A real `MISTRAL_API_KEY` is in `.env` (not committed).
+**Env notes:** live CUAD download needs pinned `datasets==2.20.0` (script loader; newer
+`datasets` drops script support). Dataset id `theatticusproject/cuad-qa`. Bumped `mcp==1.28.1`
++ `pydantic==2.13.4` for the FastMCP tool API. Real `MISTRAL_API_KEY` in `.env` (not committed);
+CI needs it as a GitHub Actions secret for the promptfoo step.
 
 ## Tech Stack
 
