@@ -8,7 +8,16 @@ Citation-grounded legal QA over CUAD commercial contracts: answers carry **span-
 
 ## Current Phase
 
-**Phase 0 — Skeleton.** Root has `PROJECT_PLAN.md`, `config.yaml`, `requirements.txt`, `Makefile`, `env.example`. No `src/` yet. See `PROJECT_PLAN.md` for the full 4-phase build plan.
+**Phase 3 — Faithfulness harness, LegalBench & CI (next up).** Phases 0–2 are done, committed, and pushed to `origin/main`. See `PROJECT_PLAN.md` for the full 4-phase plan.
+
+Done so far:
+- **Phase 1 (1.2–1.7):** CUAD ingest → normalize (`contracts`, `gold_spans` with exact offsets) → sliding-window chunking → FAISS + BM25 → hybrid RRF + cross-encoder reranker. `make index` runs it (`--raw-path` to index from a saved snapshot, `--no-retrieval` to stop after chunking). `make smoke` / `src/retrieval/smoke.py` (`--demo` self-contained, `--from-disk` real artifacts).
+- **Phase 2 (2.1–2.8):** `Citation`/`Claim`/`Answer` schemas; `MistralClient` (retry/backoff, `from_config`); cited-answer generation with parse-retry; claim decomposition; shared NLI singleton; groundedness gate; LangGraph verifier loop (`src/graph/pipeline.py`, `answer_question()`).
+- **Tests:** 56 passing (`pytest -q`), all offline (LLM + NLI mocked).
+
+Next (Phase 3): `src/eval/harness.py`, `citation_metrics.py`, `legalbench_runner.py`; contamination split; `eval_reports/`; promptfoo + GitHub Actions.
+
+**Env note:** live CUAD download needs pinned `datasets==2.20.0` (script-based loader) in a clean venv; newer `datasets` drops script support. Dataset id is `theatticusproject/cuad-qa`. A real `MISTRAL_API_KEY` is in `.env` (not committed).
 
 ## Tech Stack
 
@@ -25,8 +34,8 @@ Citation-grounded legal QA over CUAD commercial contracts: answers carry **span-
 ## Repo Structure (target — see PROJECT_PLAN.md §0.2)
 
 ```
-config/config.yaml       # all tunables (currently at root as config.yaml)
-data/{raw,processed}/    # CUAD download, chunks, gold-span store, FAISS index
+config/config.yaml       # all tunables
+data/{raw,processed}/    # CUAD download, chunks, gold-span store, FAISS index (gitignored)
 src/
   ingest/     # download + parse + chunk CUAD, gold-span store
   retrieval/  # bm25.py, dense.py, reranker.py, hybrid.py
@@ -44,7 +53,8 @@ promptfoo/  tests/  eval_reports/  .github/workflows/ci.yml
 ## Coding Conventions
 
 - **Config-driven:** every tunable (models, top-k, chunk size, thresholds) lives in `config.yaml`, never hardcoded. No secrets in config — secrets go in `.env`.
-- **Preserve character offsets** end-to-end (chunk → citation → gold-span IoU). Non-negotiable.
+- **Preserve character offsets** end-to-end (chunk → citation → gold-span IoU). Non-negotiable. **Citation offsets come from the retrieved span the model cites (by id), never emitted by the LLM.**
+- **Injectable seams for offline tests:** `MistralClient` takes a `transport` + `sleep_fn`; retrievers/reranker/NLI are injected into the gate and graph. Tests mock these — no network, no model downloads.
 - **Load heavy models once.** The NLI model is a singleton reused across gate + harness — never instantiate twice. Streamlit uses `@st.cache_resource`.
 - **Pydantic schemas** are the contract between generation, verify, API, MCP, UI. Enforce structured LLM output with Pydantic parsing + retry.
 - **All LLM calls go through `mistral_client.py`** with retry + exponential backoff (RPM is the binding constraint).
